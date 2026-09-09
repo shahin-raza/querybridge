@@ -5,6 +5,26 @@ from dotenv import load_dotenv
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 
+
+def _format_sorted_salary_answer(question: str, result: list[dict[str, Any]]) -> str:
+    q = question.lower()
+    if not any(term in q for term in ["sort", "sorted", "order", "high to low", "low to high", "highest", "lowest", "descending", "ascending"]):
+        return ""
+
+    items: list[str] = []
+    for index, row in enumerate(result, start=1):
+        name = row.get("emp_name") or row.get("employee_name") or row.get("name")
+        if not name:
+            continue
+        salary = row.get("total_salary") or row.get("base_salary") or row.get("salary")
+        items.append(f"{index}. **{name}** - Total Salary: {salary if salary not in (None, '', 'N/A') else 'Not specified'}")
+
+    if not items:
+        return ""
+
+    direction = "from high to low" if any(term in q for term in ["high to low", "highest", "descending", "sort", "sorted"]) else "from low to high"
+    return f"Based on the query results, here is the list of employee names sorted by total salary {direction}:\n\n" + "\n".join(items)
+
 load_dotenv()
 
 
@@ -60,6 +80,10 @@ def build_answer_prompt() -> ChatPromptTemplate:
 
 
 def answer_question(question: str, schema: list[dict[str, Any]], result: list[dict[str, Any]]) -> str:
+    direct_answer = _format_sorted_salary_answer(question, result)
+    if direct_answer:
+        return direct_answer
+
     llm = get_llm()
     answer_prompt = build_answer_prompt()
     response = llm.invoke(answer_prompt.format(question=question, result=result))

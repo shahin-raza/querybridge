@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from mcp.server.mcpserver import MCPServer
 
 from db.connection import fetch_table_schema, get_engine, run_query
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 load_dotenv()
 
@@ -32,6 +34,7 @@ def query_employee_salary(sql: str) -> list[dict[str, Any]]:
     sql = sql.strip()
     if not sql.lower().startswith("select"):
         raise ValueError("Only SELECT queries are allowed.")
+
     return run_query(get_engine(), sql)
 
 
